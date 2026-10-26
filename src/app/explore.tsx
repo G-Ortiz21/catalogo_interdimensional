@@ -1,180 +1,529 @@
-import { Image } from 'expo-image';
-import { SymbolView } from 'expo-symbols';
-import { Platform, Pressable, ScrollView, StyleSheet } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { isAxiosError } from 'axios';
+import { useEffect, useRef, useState } from 'react';
+import { useRouter } from 'expo-router';
+import {
+  ActivityIndicator,
+  FlatList,
+  Pressable,
+  StyleSheet,
+  Text,
+  TextInput,
+  useWindowDimensions,
+  View,
+} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { ExternalLink } from '@/components/external-link';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { Collapsible } from '@/components/ui/collapsible';
-import { WebBadge } from '@/components/web-badge';
-import { BottomTabInset, MaxContentWidth, Spacing } from '@/constants/theme';
-import { useTheme } from '@/hooks/use-theme';
+import { BotonAccion } from '@/components/BotonAccion';
+import { EstadoPantalla } from '@/components/EstadoPantalla';
+import { TarjetaPersonaje } from '@/components/TarjetaPersonaje';
+import { colores, espacios, fuentes, radios, tipografia } from '@/constants/theme';
+import { usePersonajes } from '@/hooks/usePersonajes';
+import { mensajeDeError } from '@/lib/errores';
+import type { Personaje } from '@/types/personaje';
 
-export default function TabTwoScreen() {
-  const safeAreaInsets = useSafeAreaInsets();
-  const insets = {
-    ...safeAreaInsets,
-    bottom: safeAreaInsets.bottom + BottomTabInset + Spacing.three,
+export default function ExplorarScreen() {
+  const router = useRouter();
+  const { width } = useWindowDimensions();
+  const [pagina, setPagina] = useState(1);
+  const [textoBusqueda, setTextoBusqueda] = useState('');
+  const [nombre, setNombre] = useState('');
+  const listaRef = useRef<FlatList<Personaje>>(null);
+
+  const {
+    data,
+    isPending,
+    isError,
+    isFetching,
+    isRefetching,
+    error,
+    refetch,
+  } = usePersonajes(pagina, nombre);
+
+  const sinCoincidencias =
+    Boolean(nombre) && isError && isAxiosError(error) && error.response?.status === 404;
+  const totalPaginas = sinCoincidencias ? 0 : data?.info.pages ?? 0;
+  const totalPersonajes = sinCoincidencias ? 0 : data?.info.count ?? '—';
+  const puedeAtras = pagina > 1 && !isFetching;
+  const puedeAvanzar = !sinCoincidencias && Boolean(data?.info.next) && !isFetching;
+
+  useEffect(() => {
+    listaRef.current?.scrollToOffset({ offset: 0, animated: false });
+  }, [pagina]);
+
+  useEffect(() => {
+    const temporizador = setTimeout(() => {
+      const filtro = textoBusqueda.trim();
+      setPagina(1);
+      setNombre(filtro);
+    }, 350);
+
+    return () => clearTimeout(temporizador);
+  }, [textoBusqueda]);
+
+  const volver = () => {
+    if (router.canGoBack()) {
+      router.back();
+      return;
+    }
+    router.replace('/');
   };
-  const theme = useTheme();
 
-  const contentPlatformStyle = Platform.select({
-    android: {
-      paddingTop: insets.top,
-      paddingLeft: insets.left,
-      paddingRight: insets.right,
-      paddingBottom: insets.bottom,
-    },
-    web: {
-      paddingTop: Spacing.six,
-      paddingBottom: Spacing.four,
-    },
-  });
+  const limpiarBusqueda = () => {
+    setTextoBusqueda('');
+    setNombre('');
+    setPagina(1);
+  };
 
   return (
-    <ScrollView
-      style={[styles.scrollView, { backgroundColor: theme.background }]}
-      contentInset={insets}
-      contentContainerStyle={[styles.contentContainer, contentPlatformStyle]}>
-      <ThemedView style={styles.container}>
-        <ThemedView style={styles.titleContainer}>
-          <ThemedText type="subtitle">Explore</ThemedText>
-          <ThemedText style={styles.centerText} themeColor="textSecondary">
-            This starter app includes example{'\n'}code to help you get started.
-          </ThemedText>
+    <View style={styles.raiz}>
+      <SafeAreaView style={styles.areaSegura} edges={['top', 'left', 'right']}>
+        <View style={styles.cabecera}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Volver al inicio"
+            onPress={volver}
+            hitSlop={12}
+            style={({ pressed }) => [styles.volver, pressed && styles.presionado]}>
+            <Text style={styles.volverTexto}>← VOLVER</Text>
+          </Pressable>
 
-          <ExternalLink href="https://docs.expo.dev" asChild>
-            <Pressable style={({ pressed }) => pressed && styles.pressed}>
-              <ThemedView type="backgroundElement" style={styles.linkButton}>
-                <ThemedText type="link">Expo documentation</ThemedText>
-                <SymbolView
-                  tintColor={theme.text}
-                  name={{ ios: 'arrow.up.right.square', android: 'link', web: 'link' }}
-                  size={12}
+          <View style={styles.cabeceraCentro}>
+            <Text style={styles.codigo}>ARCHIVO DE PERSONAJES</Text>
+            <Text style={[styles.titulo, width < 360 && styles.tituloCompacto]}>
+              PERSONAJES
+            </Text>
+          </View>
+
+          <View style={styles.contador}>
+            <Text style={styles.contadorValor}>{totalPersonajes}</Text>
+            <Text style={styles.contadorEtiqueta}>REGISTROS</Text>
+          </View>
+        </View>
+
+        <View style={styles.subbarra}>
+          <Text style={styles.subbarraTexto}>
+            {isFetching
+              ? 'SINCRONIZANDO CON LA API PÚBLICA'
+              : 'FUENTE: RICK AND MORTY API · SOLO LECTURA'}
+          </Text>
+          {isFetching ? <ActivityIndicator color={colores.cianEnergetico} size="small" /> : null}
+        </View>
+
+        <View style={styles.bandaArchivo}>
+          <View style={styles.bandaIndice}>
+            <Text style={styles.bandaNumero}>01</Text>
+            <Text style={styles.bandaRotulo}>ARCHIVO</Text>
+          </View>
+          <View style={styles.bandaContenido}>
+            <Text style={styles.bandaTitulo}>ENTIDADES LOCALIZADAS</Text>
+            <Text style={styles.bandaDetalle}>
+              {data
+                ? `${data.info.count} registros · página ${pagina} de ${data.info.pages}`
+                : 'Exploración de señales recibidas'}
+            </Text>
+          </View>
+          <View pointerEvents="none" style={styles.bandaMarca}>
+            <View style={styles.bandaMarcaInterior} />
+          </View>
+        </View>
+
+        <View style={styles.busqueda}>
+          <Text style={styles.busquedaEtiqueta}>LOCALIZAR POR NOMBRE</Text>
+          <View style={styles.busquedaFila}>
+            <TextInput
+              accessibilityLabel="Buscar personajes por nombre"
+              value={textoBusqueda}
+              onChangeText={setTextoBusqueda}
+              placeholder="Ej. Rick Sanchez"
+              placeholderTextColor={colores.cremaEstelar}
+              selectionColor={colores.cianEnergetico}
+              returnKeyType="search"
+              style={styles.campoBusqueda}
+            />
+            {textoBusqueda ? (
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Limpiar búsqueda"
+                onPress={limpiarBusqueda}
+                style={({ pressed }) => [styles.limpiarBusqueda, pressed && styles.presionado]}>
+                <Text style={styles.limpiarTexto}>×</Text>
+              </Pressable>
+            ) : null}
+          </View>
+        </View>
+
+        {isPending ? (
+          <View style={styles.centro}>
+            <EstadoPantalla
+              tipo="cargando"
+              titulo="LOCALIZANDO COORDENADAS"
+              mensaje="Consultando el archivo de personajes."
+            />
+          </View>
+        ) : isError && !data && !sinCoincidencias ? (
+          <View style={styles.centro}>
+            <EstadoPantalla
+              tipo="error"
+              titulo="NO SE PUDO ABRIR EL ARCHIVO"
+              mensaje={mensajeDeError(error)}
+              textoAccion="REINTENTAR"
+              onAccion={() => void refetch()}
+            />
+          </View>
+        ) : (
+          <>
+            {isError && data && !sinCoincidencias ? (
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Error al actualizar. Tocar para reintentar."
+                onPress={() => void refetch()}
+                style={styles.avisoError}>
+                <Text style={styles.avisoErrorTexto}>
+                  No se pudo actualizar. Se muestran datos en caché. Toca para reintentar.
+                </Text>
+              </Pressable>
+            ) : null}
+
+            <FlatList
+              ref={listaRef}
+              data={sinCoincidencias ? [] : data?.results ?? []}
+              keyExtractor={(item) => String(item.id)}
+              renderItem={({ item, index }) => (
+                <View style={[styles.celda, index % 2 === 1 && styles.celdaDesplazada]}>
+                  <TarjetaPersonaje
+                    personaje={item}
+                    composicion={index % 2 === 1 ? 'vertical' : 'normal'}
+                    onPress={() =>
+                      router.push({
+                        pathname: '/personaje/[id]',
+                        params: { id: String(item.id) },
+                      })
+                    }
+                  />
+                </View>
+              )}
+              numColumns={2}
+              columnWrapperStyle={styles.fila}
+              contentContainerStyle={styles.lista}
+              showsVerticalScrollIndicator={false}
+              refreshing={isRefetching && !isPending}
+              onRefresh={() => void refetch()}
+              ListEmptyComponent={
+                <EstadoPantalla
+                  tipo="vacio"
+                  titulo={nombre ? 'SIN COINCIDENCIAS' : 'SIN RESULTADOS'}
+                  mensaje={
+                    nombre
+                      ? `La API no encontró personajes para “${nombre}”.`
+                      : 'La API no devolvió personajes para esta página.'
+                  }
+                  textoAccion={nombre ? 'LIMPIAR BÚSQUEDA' : 'ACTUALIZAR'}
+                  onAccion={nombre ? limpiarBusqueda : () => void refetch()}
                 />
-              </ThemedView>
-            </Pressable>
-          </ExternalLink>
-        </ThemedView>
+              }
+            />
 
-        <ThemedView style={styles.sectionsWrapper}>
-          <Collapsible title="File-based routing">
-            <ThemedText type="small">
-              This app has two screens: <ThemedText type="code">src/app/index.tsx</ThemedText> and{' '}
-              <ThemedText type="code">src/app/explore.tsx</ThemedText>
-            </ThemedText>
-            <ThemedText type="small">
-              The layout file in <ThemedText type="code">src/app/_layout.tsx</ThemedText> sets up
-              the tab navigator.
-            </ThemedText>
-            <ExternalLink href="https://docs.expo.dev/router/introduction">
-              <ThemedText type="linkPrimary">Learn more</ThemedText>
-            </ExternalLink>
-          </Collapsible>
-
-          <Collapsible title="Android, iOS, and web support">
-            <ThemedView type="backgroundElement" style={styles.collapsibleContent}>
-              <ThemedText type="small">
-                You can open this project on Android, iOS, and the web. To open the web version,
-                press <ThemedText type="smallBold">w</ThemedText> in the terminal running this
-                project.
-              </ThemedText>
-              <Image
-                source={require('@/assets/images/tutorial-web.png')}
-                style={styles.imageTutorial}
+            <View style={styles.paginacion}>
+              <BotonAccion
+                titulo={width < 360 ? '←' : '← ANTERIOR'}
+                etiquetaAccesibilidad="Página anterior"
+                variante="fantasma"
+                compacto
+                deshabilitado={!puedeAtras}
+                onPress={() => setPagina((actual) => Math.max(1, actual - 1))}
               />
-            </ThemedView>
-          </Collapsible>
 
-          <Collapsible title="Images">
-            <ThemedText type="small">
-              For static images, you can use the <ThemedText type="code">@2x</ThemedText> and{' '}
-              <ThemedText type="code">@3x</ThemedText> suffixes to provide files for different
-              screen densities.
-            </ThemedText>
-            <Image source={require('@/assets/images/react-logo.png')} style={styles.imageReact} />
-            <ExternalLink href="https://reactnative.dev/docs/images">
-              <ThemedText type="linkPrimary">Learn more</ThemedText>
-            </ExternalLink>
-          </Collapsible>
+              <View style={styles.indicador}>
+                <Text style={styles.indicadorValor}>
+                  {String(pagina).padStart(2, '0')}
+                  <Text style={styles.indicadorTotal}>
+                    {' '}
+                    / {totalPaginas ? String(totalPaginas).padStart(2, '0') : nombre ? '00' : '—'}
+                  </Text>
+                </Text>
+                <Text style={styles.indicadorEtiqueta}>PÁGINA</Text>
+              </View>
 
-          <Collapsible title="Light and dark mode components">
-            <ThemedText type="small">
-              This template has light and dark mode support. The{' '}
-              <ThemedText type="code">useColorScheme()</ThemedText> hook lets you inspect what the
-              user&apos;s current color scheme is, and so you can adjust UI colors accordingly.
-            </ThemedText>
-            <ExternalLink href="https://docs.expo.dev/develop/user-interface/color-themes/">
-              <ThemedText type="linkPrimary">Learn more</ThemedText>
-            </ExternalLink>
-          </Collapsible>
-
-          <Collapsible title="Animations">
-            <ThemedText type="small">
-              This template includes an example of an animated component. The{' '}
-              <ThemedText type="code">src/components/ui/collapsible.tsx</ThemedText> component uses
-              the powerful <ThemedText type="code">react-native-reanimated</ThemedText> library to
-              animate opening this hint.
-            </ThemedText>
-          </Collapsible>
-        </ThemedView>
-        {Platform.OS === 'web' && <WebBadge />}
-      </ThemedView>
-    </ScrollView>
+              <BotonAccion
+                titulo={width < 360 ? '→' : 'SIGUIENTE →'}
+                etiquetaAccesibilidad="Página siguiente"
+                variante="fantasma"
+                compacto
+                deshabilitado={!puedeAvanzar}
+                onPress={() => setPagina((actual) => actual + 1)}
+              />
+            </View>
+          </>
+        )}
+      </SafeAreaView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  scrollView: {
+  raiz: {
+    flex: 1,
+    backgroundColor: colores.espacioProfundo,
+  },
+  areaSegura: {
     flex: 1,
   },
-  contentContainer: {
+  cabecera: {
     flexDirection: 'row',
-    justifyContent: 'center',
-  },
-  container: {
-    maxWidth: MaxContentWidth,
-    flexGrow: 1,
-  },
-  titleContainer: {
-    gap: Spacing.three,
     alignItems: 'center',
-    paddingHorizontal: Spacing.four,
-    paddingVertical: Spacing.six,
+    gap: espacios.md,
+    paddingHorizontal: espacios.lg,
+    paddingTop: espacios.md,
+    paddingBottom: espacios.md,
+    borderBottomWidth: 1,
+    borderBottomColor: colores.bordeSutil,
   },
-  centerText: {
-    textAlign: 'center',
+  volver: {
+    paddingVertical: espacios.xs,
   },
-  pressed: {
-    opacity: 0.7,
+  volverTexto: {
+    color: colores.cianEnergetico,
+    fontFamily: fuentes.mono,
+    fontSize: tipografia.tecnica,
+    fontWeight: '900',
+    letterSpacing: 0,
   },
-  linkButton: {
+  presionado: {
+    opacity: 0.65,
+  },
+  cabeceraCentro: {
+    flex: 1,
+    gap: 1,
+  },
+  codigo: {
+    color: colores.cremaEstelar,
+    fontFamily: fuentes.mono,
+    fontSize: tipografia.tecnica,
+    letterSpacing: 0,
+    opacity: 0.8,
+  },
+  titulo: {
+    color: colores.blancoCosmico,
+    fontSize: tipografia.titulo,
+    fontWeight: '900',
+    letterSpacing: 0,
+    lineHeight: 33,
+  },
+  tituloCompacto: {
+    fontSize: tipografia.subtitulo,
+    lineHeight: 24,
+  },
+  contador: {
+    alignItems: 'flex-end',
+    paddingLeft: espacios.sm,
+    borderLeftWidth: 1,
+    borderLeftColor: colores.bordeSutil,
+  },
+  contadorValor: {
+    color: colores.verdePortal,
+    fontFamily: fuentes.mono,
+    fontSize: 16,
+    fontWeight: '900',
+  },
+  contadorEtiqueta: {
+    color: colores.cremaEstelar,
+    fontFamily: fuentes.mono,
+    fontSize: tipografia.tecnica,
+    letterSpacing: 0,
+  },
+  subbarra: {
     flexDirection: 'row',
-    paddingHorizontal: Spacing.four,
-    paddingVertical: Spacing.two,
-    borderRadius: Spacing.five,
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: espacios.sm,
+    paddingHorizontal: espacios.lg,
+    paddingVertical: espacios.sm,
+    backgroundColor: colores.nebulosaOscura,
+  },
+  subbarraTexto: {
+    flex: 1,
+    color: colores.cremaEstelar,
+    fontFamily: fuentes.mono,
+    fontSize: tipografia.tecnica,
+    letterSpacing: 0,
+  },
+  bandaArchivo: {
+    minHeight: 96,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: espacios.md,
+    marginHorizontal: espacios.lg,
+    marginTop: espacios.md,
+    padding: espacios.md,
+    overflow: 'hidden',
+    backgroundColor: colores.portalVioleta,
+    borderLeftWidth: 5,
+    borderLeftColor: colores.verdePortal,
+    borderBottomWidth: 2,
+    borderBottomColor: colores.magentaCosmico,
+  },
+  bandaIndice: {
+    width: 62,
+    minHeight: 62,
+    alignItems: 'center',
     justifyContent: 'center',
-    gap: Spacing.one,
+    backgroundColor: colores.verdePortal,
+    transform: [{ rotate: '-3deg' }],
+  },
+  bandaNumero: {
+    color: colores.espacioProfundo,
+    fontFamily: fuentes.mono,
+    fontSize: tipografia.subtitulo,
+    fontWeight: '900',
+  },
+  bandaRotulo: {
+    color: colores.espacioProfundo,
+    fontFamily: fuentes.mono,
+    fontSize: tipografia.tecnica,
+    fontWeight: '900',
+  },
+  bandaContenido: {
+    zIndex: 1,
+    flex: 1,
+    gap: espacios.xs,
+  },
+  bandaTitulo: {
+    color: colores.blancoCosmico,
+    fontSize: tipografia.pequeno,
+    fontWeight: '900',
+  },
+  bandaDetalle: {
+    color: colores.cremaEstelar,
+    fontSize: tipografia.pequeno,
+    lineHeight: 18,
+  },
+  bandaMarca: {
+    position: 'absolute',
+    right: -22,
+    width: 108,
+    height: 108,
     alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: colores.bordeCian,
+    borderRadius: 54,
+    transform: [{ rotate: '24deg' }],
   },
-  sectionsWrapper: {
-    gap: Spacing.five,
-    paddingHorizontal: Spacing.four,
-    paddingTop: Spacing.three,
+  bandaMarcaInterior: {
+    width: 68,
+    height: 68,
+    borderWidth: 1,
+    borderColor: colores.magentaCosmico,
+    borderRadius: 34,
   },
-  collapsibleContent: {
+  busqueda: {
+    gap: espacios.xs,
+    paddingHorizontal: espacios.lg,
+    paddingTop: espacios.md,
+  },
+  busquedaEtiqueta: {
+    color: colores.cianEnergetico,
+    fontFamily: fuentes.mono,
+    fontSize: tipografia.tecnica,
+    fontWeight: '900',
+    letterSpacing: 0,
+  },
+  busquedaFila: {
+    minHeight: 46,
+    flexDirection: 'row',
     alignItems: 'center',
+    backgroundColor: colores.nebulosaOscura,
+    borderWidth: 1,
+    borderColor: colores.bordeCian,
+    borderRadius: radios.sm,
   },
-  imageTutorial: {
+  campoBusqueda: {
+    flex: 1,
+    minWidth: 0,
+    paddingHorizontal: espacios.md,
+    paddingVertical: espacios.sm,
+    color: colores.blancoCosmico,
+    fontSize: tipografia.cuerpo,
+  },
+  limpiarBusqueda: {
+    width: 44,
+    height: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderLeftWidth: 1,
+    borderLeftColor: colores.bordeSutil,
+  },
+  limpiarTexto: {
+    color: colores.cianEnergetico,
+    fontSize: 25,
+    lineHeight: 28,
+  },
+  centro: {
+    flex: 1,
+    justifyContent: 'center',
+    padding: espacios.lg,
+  },
+  avisoError: {
+    marginHorizontal: espacios.lg,
+    marginTop: espacios.md,
+    padding: espacios.sm,
+    backgroundColor: colores.portalVioleta,
+    borderLeftWidth: 4,
+    borderLeftColor: colores.alerta,
+    borderRadius: radios.sm,
+  },
+  avisoErrorTexto: {
+    color: colores.blancoCosmico,
+    fontSize: tipografia.pequeno,
+    lineHeight: 18,
+  },
+  lista: {
+    gap: espacios.md,
+    padding: espacios.lg,
+    paddingBottom: espacios.xl,
     width: '100%',
-    aspectRatio: 296 / 171,
-    borderRadius: Spacing.three,
-    marginTop: Spacing.two,
-  },
-  imageReact: {
-    width: 100,
-    height: 100,
+    maxWidth: 980,
     alignSelf: 'center',
+  },
+  fila: {
+    gap: espacios.md,
+  },
+  celda: {
+    flex: 1,
+    minWidth: 0,
+  },
+  celdaDesplazada: {
+    marginTop: espacios.lg,
+  },
+  paginacion: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: espacios.sm,
+    paddingHorizontal: espacios.lg,
+    paddingVertical: espacios.md,
+    borderTopWidth: 1,
+    borderTopColor: colores.bordeSutil,
+    backgroundColor: colores.nebulosaOscura,
+  },
+  indicador: {
+    alignItems: 'center',
+    gap: 1,
+  },
+  indicadorValor: {
+    color: colores.blancoCosmico,
+    fontFamily: fuentes.mono,
+    fontSize: 14,
+    fontWeight: '900',
+  },
+  indicadorTotal: {
+    color: colores.cremaEstelar,
+    fontSize: 10,
+  },
+  indicadorEtiqueta: {
+    color: colores.cremaEstelar,
+    fontFamily: fuentes.mono,
+    fontSize: tipografia.tecnica,
+    letterSpacing: 0,
   },
 });
