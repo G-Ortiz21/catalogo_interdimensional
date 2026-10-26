@@ -422,14 +422,3 @@ Las pruebas detalladas se encuentran en `PRUEBAS.md`. Las pruebas P01–P15 no s
 
 No dejar afirmaciones genéricas como “todo funciona correctamente” sin evidencias.
 
-## 17. Uso de herramientas de IA
-
-[Describir las herramientas utilizadas, las tareas en las que ayudaron y las verificaciones realizadas, de acuerdo con las instrucciones académicas aplicables.]
-
-## 18. Repositorio y demostración
-
-Repositorio: [URL real de GitHub].
-
-Video de demostración: [URL pública real, cuando esté disponible].
-
-APK o método de instalación: [enlace o instrucciones reales, cuando esté disponible].
