@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "catalogo_interdimensional",
-    "slug": "catalogo_interdimensional",
+    "slug": "catalogointerdimensional",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
@@ -17,7 +17,8 @@
         "backgroundImage": "./assets/images/android-icon-background.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "package": "com.gd21o.catalogo_interdimensional"
     },
     "web": {
       "output": "static",
@@ -38,6 +39,17 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
-    }
+    },
+    "extra": {
+      "router": {
+        "asyncRoutes": {
+          "web": true
+        }
+      },
+      "eas": {
+        "projectId": "3d1a981d-e03a-48ed-8363-7d2627226bc9"
+      }
+    },
+    "owner": "gd21os-team"
   }
 }

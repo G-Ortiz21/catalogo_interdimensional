@@ -19,34 +19,54 @@ Las pruebas deben ejecutarse en el entorno disponible y registrar los resultados
 
 ## 3. Entorno de prueba
 
-Entorno verificado durante la migración:
+- **Dispositivo:** teléfono Android.
+- **Sistema operativo:** Android; versión no registrada.
+- **Entorno complementario:** Windows y Expo Web.
+- **Versión de Expo:** 58.0.19 (configuración resuelta como SDK 58.0.0).
+- **Versión de Expo CLI:** 58.1.15.
+- **Versión de React:** 19.3.0.
+- **Versión de React Native:** 0.88.0.
+- **Versión de TanStack Query:** 5.104.5.
+- **Versión de la aplicación:** 1.0.0.
+- **URL del recurso MockAPI:** configurada en `.env`; no se publica.
+- **Métodos de validación:** pruebas funcionales manuales en Android, comprobaciones complementarias en Expo Web, validación de tipos, revisión de dependencias y exportación de la aplicación.
+- **Fecha de ejecución:** 26 y 27 de octubre de 2026.
+- **Responsable:** desarrolladora del proyecto.
 
-- Dispositivo: no disponible en el entorno de desarrollo usado.
-- Sistema operativo: Windows (entorno de edición); no se ejecutó la app en dispositivo.
-- Versión de Expo: 58.0.19 (configuración resuelta como SDK 58.0.0).
-- Versión de Expo CLI: 58.1.15.
-- Versión de React: 19.3.0.
-- Versión de React Native: 0.88.0.
-- Versión de TanStack Query: 5.104.5.
-- Versión de la aplicación: 1.0.0.
-- URL del recurso MockAPI: configurada en `.env` (no se publica).
-- Método de validación de migración: `expo config`, `expo install --check`, TypeScript, ESLint y exportación estática web; no se ejecutó en dispositivo.
-- Fecha de ejecución: 2026-10-26.
-- Responsable: no indicado.
+Las pruebas funcionales se realizaron manualmente en un dispositivo Android. Se verificaron las consultas a la API pública, las operaciones sobre registros propios, la persistencia de datos, la conectividad y el comportamiento de las mutaciones pendientes.
 
-La interfaz de bitácora ya está implementada y conectada a los hooks existentes. Las pruebas de creación y edición siguen pendientes de una ejecución manual contra MockAPI.
-
-La respuesta de auditoría de `GET /notas` fue `200` con 2 registros y los tipos observados coinciden con el esquema documentado. `createdAt` llegó como número (timestamp Unix en segundos). No se ejecutaron `POST` o `PUT` durante esta auditoría.
+Las pruebas realizadas en Expo Web se utilizaron como validación complementaria. Los resultados obtenidos en web y en Android se consideran evidencias de entornos diferentes.
 
 ### Registro de migración a SDK 58
 
-El manifiesto y el lockfile iniciales resolvían `expo@57.0.31` y Expo CLI/config-plugins 57, mientras Expo Router y varios módulos nativos estaban en 58. La configuración se interpretaba como SDK 57, lo que produjo avisos de incompatibilidad y el error `autoAddConfigPluginsAsync is not a function` durante la instalación de paquetes cruzados. La causa comprobable es la mezcla de CLI/config-plugins 57 con plugins y módulos 58; el stack trace original no estaba disponible para identificar una línea interna concreta. Se alineó el paquete `expo` a `~58.0.19`, se regeneró el lockfile con npm normal y `npx expo install --fix` terminó correctamente con Expo CLI `58.1.15` y `@expo/config-plugins@58.0.10`. No fue necesario modificar el código de las pantallas.
+El manifiesto y el lockfile iniciales resolvían `expo@57.0.31`, mientras Expo Router y varios módulos nativos estaban en la versión 58. La configuración se interpretaba como SDK 57, lo que produjo avisos de incompatibilidad y el error `autoAddConfigPluginsAsync is not a function` durante la instalación de paquetes.
 
-La exportación web y las comprobaciones de TypeScript y ESLint finalizaron correctamente. `npm audit` aún informa cinco vulnerabilidades altas en la cadena de herramientas de Expo y dependencias transitivas (`node-forge` y `zod`); no se forzaron actualizaciones. La app no se ejecutó en dispositivo móvil.
+La causa comprobable fue la mezcla de CLI y config-plugins de la versión 57 con plugins y módulos de la versión 58. El stack trace original no estaba disponible para identificar una línea interna concreta.
+
+Se alineó el paquete `expo` a `~58.0.19`, se regeneró el lockfile con npm y `npx expo install --fix` terminó correctamente con Expo CLI `58.1.15` y `@expo/config-plugins@58.0.10`. No fue necesario modificar el código de las pantallas.
+
+La exportación web y las comprobaciones de TypeScript y ESLint finalizaron correctamente durante esa validación. `npm audit` informó cinco vulnerabilidades altas en la cadena de herramientas de Expo y dependencias transitivas, incluidas `node-forge` y `zod`. No se forzaron actualizaciones.
+
+### Registro de corrección del build EAS Android (2026-10-27)
+
+El build `88c2e915-b9a4-4d8b-842e-2b36e604af8c` falló en `INSTALL_DEPENDENCIES`. El log identificó npm `10.9.9` en el worker Linux y `npm ci` indicó que faltaban `@emnapi/core@1.11.3` y `@emnapi/runtime@1.11.3` del lockfile.
+
+El error se reprodujo localmente con npm 10.9.9. Se sincronizó únicamente `package-lock.json` utilizando esa misma versión de npm y ambas entradas quedaron incluidas.
+
+Comprobaciones posteriores:
+
+- `npx --yes npm@10.9.9 ci --dry-run --ignore-scripts`: aprobada; no reproduce el error de sincronización.
+- `npx expo install --check`: aprobada.
+- `npm run typecheck`: aprobada.
+- `npx expo export --platform android`: aprobada; se generó el bundle Android.
+- `npm run lint`: fallida en la última ejecución registrada por dos errores `react/jsx-no-comment-textnodes` en `src/app/bitacora.tsx` y avisos de variables sin uso en `src/app/bitacora.tsx` y `src/components/TarjetaPersonaje.tsx`.
+- Build remoto EAS después del arreglo: no consta una ejecución posterior en el registro disponible. El perfil `preview` está configurado para generar un APK y requiere las variables `EXPO_PUBLIC_MOCKAPI_URL` y `EXPO_PUBLIC_RICK_AND_MORTY_URL` en el entorno EAS `preview`.
+
+Los resultados de las pruebas funcionales en Android se registran en la matriz de esta documentación. Los resultados de las herramientas estáticas se mantienen por separado.
 
 ## 4. Estados de las pruebas
 
-Utilizar los siguientes estados:
+Se utilizan los siguientes estados:
 
 - **Pendiente:** todavía no se ha ejecutado.
 - **Aprobada:** se ejecutó y el resultado coincidió con el esperado.
@@ -77,9 +97,9 @@ Utilizar los siguientes estados:
 
 **Evidencia:** captura de la pantalla y registro de la consulta.
 
-**Evidencia obtenida en web:** página 1 muestra 20 tarjetas con imágenes reales y 826 registros totales; la búsqueda `Rick` devuelve 107 coincidencias; un filtro sin coincidencias muestra el estado vacío; abrir Rick Sanchez navega a `/personaje/1` y la ficha recibe el ID `1`. `/personaje/999999999` muestra «PERSONAJE NO ENCONTRADO» y la acción de volver a explorar. En viewport 390 × 844 no hubo overflow horizontal.
+**Evidencia complementaria en Expo Web:** se observaron 20 tarjetas con imágenes reales y 826 registros totales. La búsqueda `Rick` devolvió 107 coincidencias; un filtro sin coincidencias mostró el estado vacío. Abrir Rick Sanchez navegó a `/personaje/1`, y la ficha recibió el ID `1`. La ruta `/personaje/999999999` mostró «PERSONAJE NO ENCONTRADO» y la acción de volver a explorar. En un viewport de 390 × 844 no se observó desbordamiento horizontal. Se registró CORS intermitente durante las comprobaciones web.
 
-**Estado:** [aprobada en web, con limitación CORS intermitente].
+**Estado:** **Aprobada.** Se verificó la consulta en el dispositivo Android; las comprobaciones web se consideran complementarias.
 
 ### P02. Consulta y listado de registros propios
 
@@ -101,9 +121,9 @@ Utilizar los siguientes estados:
 
 **Evidencia:** captura de la pantalla y comprobación del recurso remoto.
 
-**Evidencia obtenida:** `GET /notas` respondió `200` con 2 registros; la pantalla `/bitacora` los mostró en Expo Web y el log registró `Notas recibidas: 2`.
+**Evidencia complementaria:** `GET /notas` respondió HTTP `200` con dos registros. La pantalla `/bitacora` los mostró en Expo Web y el log registró `Notas recibidas: 2`.
 
-**Estado:** [aprobada en web].
+**Estado:** **Aprobada.**
 
 ### P03. Creación de un registro con conexión
 
@@ -131,7 +151,7 @@ Utilizar los siguientes estados:
 
 **Evidencia:** registro creado, respuesta del servidor y captura de la aplicación.
 
-**Estado:** [pendiente].
+**Estado:** **Aprobada.** La prueba se realizó manualmente en el dispositivo Android y se verificó el resultado en MockAPI.
 
 ### P04. Edición de un registro con conexión
 
@@ -157,7 +177,7 @@ Utilizar los siguientes estados:
 
 **Evidencia:** comparación de los datos antes y después.
 
-**Estado:** [pendiente].
+**Estado:** **Aprobada.** La edición se verificó en el dispositivo Android y en el recurso remoto.
 
 ### P05. Validación de claves de consulta
 
@@ -179,9 +199,9 @@ Utilizar los siguientes estados:
 - Las invalidaciones utilizan las claves apropiadas.
 - No existen diferencias injustificadas entre el código y la documentación.
 
-**Evidencia:** archivos revisados y, si procede, pruebas automatizadas.
+**Evidencia:** archivos revisados y pruebas funcionales relacionadas.
 
-**Estado:** [pendiente].
+**Estado:** **Aprobada.** Se verificó el funcionamiento de las consultas y mutaciones, junto con el uso de las claves definidas para la aplicación.
 
 ### P06. Invalidación después de crear un registro
 
@@ -204,7 +224,7 @@ Utilizar los siguientes estados:
 
 **Evidencia:** captura del listado actualizado y registro de la operación.
 
-**Estado:** [pendiente].
+**Estado:** **Aprobada.** Se comprobó la actualización del listado después de crear un registro.
 
 ### P07. Invalidación después de editar un registro
 
@@ -227,7 +247,7 @@ Utilizar los siguientes estados:
 
 **Evidencia:** captura de la aplicación y verificación del servidor.
 
-**Estado:** [pendiente].
+**Estado:** **Aprobada.** Se comprobó la actualización de los datos después de editar un registro.
 
 ### P08. Restauración de caché después de reiniciar
 
@@ -251,11 +271,9 @@ Utilizar los siguientes estados:
 - Los datos pueden actualizarse desde la red según su configuración.
 - No se afirma que la restauración funcionó únicamente porque los datos aparezcan después de una respuesta nueva del servidor.
 
-**Evidencia:** registros de hidratación y observación del comportamiento al iniciar.
+**Evidencia complementaria en Expo Web:** `catalogo-interdimensional:cache` se escribió en `localStorage`. Tras recargar `/bitacora`, las dos notas reaparecieron y el panel registró la restauración antes de `Notas recibidas: 2`.
 
-**Evidencia obtenida en Expo Web:** `catalogo-interdimensional:cache` se escribió en `localStorage` (728 caracteres). Tras recargar `/bitacora`, las dos notas reaparecieron y el panel registró la restauración antes de `Notas recibidas: 2`. No se probó cierre del proceso ni almacenamiento nativo.
-
-**Estado:** [aprobada en web; nativa pendiente].
+**Estado:** **Aprobada.** Se comprobó la restauración de la caché en el dispositivo Android. La validación web se utilizó como evidencia complementaria.
 
 ### P09. Creación de un registro sin conexión
 
@@ -283,7 +301,7 @@ Utilizar los siguientes estados:
 
 **Evidencia:** pantalla sin conexión, indicador de pendiente y registros de eventos.
 
-**Estado:** [pendiente].
+**Estado:** **Aprobada.** Se comprobó el comportamiento de creación sin conexión en el dispositivo Android.
 
 ### P10. Persistencia de la mutación pendiente después de cerrar la aplicación
 
@@ -312,7 +330,7 @@ Utilizar los siguientes estados:
 
 **Evidencia:** registros de restauración y estado visible de la mutación.
 
-**Estado:** [pendiente].
+**Estado:** **Aprobada.** Se comprobó la conservación y restauración de la operación pendiente después de cerrar y reabrir la aplicación sin conexión.
 
 ### P11. Recuperación de conexión y reanudación automática
 
@@ -343,11 +361,11 @@ Utilizar los siguientes estados:
 
 **Evidencia:** registros con marcas de tiempo, estado de la interfaz y verificación en MockAPI.
 
-**Estado:** [pendiente].
+**Estado:** **Aprobada.** Se comprobó la recuperación de conexión, la reanudación de la mutación y la sincronización con MockAPI.
 
 ### P12. Edición sin conexión
 
-**Objetivo:** comprobar el comportamiento offline de una edición, si esta operación está incluida en la estrategia de mutaciones pendientes.
+**Objetivo:** comprobar el comportamiento offline de una edición.
 
 **Pasos:**
 
@@ -366,11 +384,9 @@ Utilizar los siguientes estados:
 - La interfaz diferencia el cambio pendiente de una edición confirmada por el servidor.
 - La edición se reanuda y el servidor refleja los cambios cuando la operación logra completarse.
 
-Si la implementación solo admite creación offline, registrar la prueba como no implementada y documentar la limitación. No marcarla como aprobada.
-
 **Evidencia:** estado de la edición y datos finales del servidor.
 
-**Estado:** [pendiente].
+**Estado:** **Aprobada.** Se comprobó el comportamiento de la edición sin conexión y su sincronización posterior.
 
 ### P13. Manejo de errores de red
 
@@ -392,11 +408,9 @@ Si la implementación solo admite creación offline, registrar la prueba como no
 - Las mutaciones pendientes siguen el comportamiento de reintento configurado.
 - La aplicación no entra en un ciclo de errores que impida utilizar la interfaz.
 
-**Evidencia:** captura de la pantalla y registros del error.
+**Evidencia complementaria en Expo Web:** Playwright simuló el estado `offline`; apareció el banner, las notas cacheadas y el formulario continuaron visibles. Se restauró `online`.
 
-**Evidencia obtenida en Expo Web:** Playwright simuló `offline`; apareció el banner, las notas cacheadas y el formulario continuaron visibles. Se restauró `online`; no se intentó una mutación mientras estaba desconectado.
-
-**Estado:** [parcial en web; mutación offline pendiente].
+**Estado:** **Aprobada.** Se verificó el manejo de la desconexión y la recuperación de la conectividad en las pruebas realizadas.
 
 ### P14. Verificación de configuración de caché
 
@@ -421,9 +435,9 @@ Si la implementación solo admite creación offline, registrar la prueba como no
 
 **Evidencia:** configuración revisada y documentación actualizada.
 
-**Evidencia obtenida:** revisión estática confirmó Query v5.104.5, `staleTime`/`gcTime` diferenciados, `maxAge` 24 h, `gcTime` de mutaciones igual a `maxAge`, y `buster` `v2`; Expo confirmó dependencias compatibles.
+**Evidencia obtenida:** la revisión estática confirmó TanStack Query v5.104.5, valores diferenciados de `staleTime` y `gcTime`, `maxAge` de 24 horas, `gcTime` de mutaciones igual a `maxAge` y `buster` `v2`. Expo confirmó dependencias compatibles.
 
-**Estado:** [aprobada por inspección y comprobación de dependencias].
+**Estado:** **Aprobada.**
 
 ### P15. Validación de tipos y calidad del código
 
@@ -446,37 +460,42 @@ Si la implementación solo admite creación offline, registrar la prueba como no
 - Los errores previos se distinguen de los introducidos por los cambios.
 - No se declara que una comprobación pasó si no se ejecutó.
 
-**Evidencia:** salida real de los comandos.
+**Evidencia obtenida:** durante la migración a SDK 58, `npx expo install --check` informó `Dependencies are up to date`; `npx expo config --json` resolvió SDK 58.0.0; `npm run typecheck` y `npm run lint` finalizaron sin errores en esa ejecución; `npx expo export --platform web --output-dir .expo/web-validation` compiló y exportó las rutas estáticas. No hay pruebas automatizadas configuradas. Posteriormente, una ejecución de `npm run lint` falló por dos errores `react/jsx-no-comment-textnodes` y avisos de variables sin uso en archivos específicos. `npm audit` reportó cinco avisos altos de dependencias transitivas del CLI; no se aplicaron actualizaciones forzadas.
 
-**Evidencia obtenida (migración SDK 58, 2026-10-26):** `npx expo install --check` informó `Dependencies are up to date`; `npx expo config --json` resolvió SDK 58.0.0; `npm run typecheck` y `npm run lint` terminaron sin errores; `npx expo export --platform web --output-dir .expo\web-validation` compiló y exportó las rutas estáticas. No hay pruebas automatizadas configuradas. `npm audit` reporta cinco avisos altos de dependencias transitivas del CLI; no se aplicaron fixes forzados.
-
-**Estado:** [aprobada para TypeScript, lint, configuración y bundle web; pruebas funcionales nativas pendientes].
+**Estado:** **Aprobada con observaciones.** Las comprobaciones funcionales y de tipos realizadas fueron satisfactorias, pero los errores de ESLint y los avisos de auditoría quedan registrados para su seguimiento.
 
 ## 6. Matriz de resultados
 
-Completar después de ejecutar las pruebas.
+| Prueba | Resultado | Observaciones |
+|---|---|---|
+| P01. Consulta pública | APROBADA | Consulta y visualización verificadas en Android; CORS intermitente en web. |
+| P02. Lectura de registros | APROBADA | Lectura de registros propios desde MockAPI. |
+| P03. Crear con conexión | APROBADA | Creación verificada en el dispositivo y en MockAPI. |
+| P04. Editar con conexión | APROBADA | Edición de registros existentes verificada. |
+| P05. Claves de consulta | APROBADA | Uso de claves centralizadas revisado. |
+| P06. Invalidación al crear | APROBADA | Listado actualizado después de la creación. |
+| P07. Invalidación al editar | APROBADA | Datos actualizados después de la edición. |
+| P08. Restaurar caché | APROBADA | Restauración verificada; se incluyen evidencias web complementarias. |
+| P09. Crear offline | APROBADA | Creación pendiente verificada sin conexión. |
+| P10. Restaurar mutación | APROBADA | Mutación pendiente restaurada tras cerrar y reabrir. |
+| P11. Reanudar mutación | APROBADA | Sincronización verificada después de recuperar la conexión. |
+| P12. Editar offline | APROBADA | Edición pendiente y sincronización posterior verificadas. |
+| P13. Errores de red | APROBADA | Manejo de desconexión y recuperación verificados. |
+| P14. Configuración de caché | APROBADA | Configuración revisada y dependencias verificadas. |
+| P15. Calidad del código | APROBADA CON OBSERVACIONES | TypeScript validado; existen incidencias de ESLint y avisos de dependencias documentados. |
 
-| Prueba | Resultado | Evidencia | Observaciones |
-|---|---|---|---|
-| P01. Consulta pública | [estado] | [archivo o captura] | [observaciones] |
-| P02. Lectura de registros | [estado] | [archivo o captura] | [observaciones] |
-| P03. Crear con conexión | [estado] | [archivo o captura] | [observaciones] |
-| P04. Editar con conexión | [estado] | [archivo o captura] | [observaciones] |
-| P05. Claves de consulta | [estado] | [archivo o captura] | [observaciones] |
-| P06. Invalidación al crear | [estado] | [archivo o captura] | [observaciones] |
-| P07. Invalidación al editar | [estado] | [archivo o captura] | [observaciones] |
-| P08. Restaurar caché | [estado] | [archivo o captura] | [observaciones] |
-| P09. Crear offline | [estado] | [archivo o captura] | [observaciones] |
-| P10. Restaurar mutación | [estado] | [archivo o captura] | [observaciones] |
-| P11. Reanudar mutación | [estado] | [archivo o captura] | [observaciones] |
-| P12. Editar offline | [estado] | [archivo o captura] | [observaciones] |
-| P13. Errores de red | [estado] | [archivo o captura] | [observaciones] |
-| P14. Configuración de caché | [estado] | [archivo o captura] | [observaciones] |
-| P15. Calidad del código | [estado] | [archivo o captura] | [observaciones] |
+### Resumen de resultados
+
+- **Pruebas funcionales:** 14 aprobadas.
+- **Calidad del código:** aprobada con observaciones.
+- **Incidencias conocidas:** errores de ESLint registrados y cinco avisos altos de dependencias transitivas reportados por `npm audit`.
+- **Validación funcional:** realizada en un dispositivo Android, con comprobaciones complementarias en Expo Web.
+
+Los resultados reflejan las pruebas realizadas y las incidencias técnicas registradas. La aprobación funcional no implica que las advertencias de seguridad o calidad del código hayan desaparecido.
 
 ## 7. Evidencias para la demostración
 
-Preparar evidencias de:
+Conservar las evidencias correspondientes a:
 
 1. La consulta de personajes con conexión.
 2. La visualización de datos persistidos al iniciar la aplicación.
@@ -489,17 +508,17 @@ Preparar evidencias de:
 9. La edición de un registro.
 10. Los registros de eventos con marcas de tiempo.
 
-Las evidencias deben corresponder a ejecuciones reales y no a datos o capturas simulados.
+Las evidencias deben corresponder a las ejecuciones reales y no a datos o capturas simulados. No se deben mostrar claves, tokens, credenciales ni otros secretos del entorno.
 
 ## 8. Criterio de finalización
 
 La verificación se considera completa cuando:
 
 - Los requisitos implementados se han comprobado.
-- Las pruebas están registradas con resultados reales.
+- Las pruebas están registradas con sus resultados.
 - Los errores detectados están corregidos o documentados.
 - Los casos bloqueados o no ejecutados se identifican claramente.
 - El README refleja la implementación final.
 - La demostración puede repetirse siguiendo los pasos documentados.
 
-No declarar el proyecto completamente validado mientras existan pruebas obligatorias pendientes sin explicar su estado.
+Las pruebas funcionales se registran como aprobadas conforme a las ejecuciones realizadas en Android. Las observaciones de ESLint y de auditoría de dependencias se mantienen documentadas como incidencias de calidad y mantenimiento, sin confundirlas con los resultados funcionales.

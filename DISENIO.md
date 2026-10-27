@@ -122,7 +122,7 @@ Los tokens viven en `src/constants/theme.ts`; pantallas y componentes deben cons
 
 - **Fondo y lectura:** espacio profundo para el lienzo; nebulosa oscura para superficies; blanco cósmico o crema estelar para contenido.
 - **Acción:** verde portal para la acción primaria y cian energético para la secundaria y los focos de navegación.
-- **Archivo/personajes:** violeta para marcos y secciones de expediente; el acento superior de una tarjeta de personaje sigue el estado real y se acompaña de una etiqueta textual.
+- **Archivo/personajes:** violeta para secciones de expediente. El marco de cada tarjeta usa un acento cian, magenta, verde o violeta elegido de forma estable a partir del ID real del personaje; el estado de vida conserva su propio indicador textual y color semántico.
 - **Estados:** verde para vivo/éxito, salmón para muerto/error, crema para estado desconocido, naranja para alerta y cian para actividad. Cada estado conserva texto o símbolo explicativo; el color no es la única señal.
 - Los bordes translúcidos y el brillo del portal son decoración, no superficies de texto. Las etiquetas superpuestas a imágenes usan un fondo opaco de espacio profundo para que su contraste no dependa de la ilustración.
 
@@ -152,14 +152,14 @@ Los encabezados y datos técnicos usan mayúsculas y la familia monoespaciada di
 
 - Los botones compartidos y las acciones de formulario/listado tienen una altura mínima de 44 unidades; los controles de navegación con `hitSlop` compensan su área visual compacta.
 - Formularios distinguen etiqueta, campo y ayuda. El foco utiliza cian; el texto escrito es blanco cósmico sobre espacio profundo.
-- Las tarjetas mantienen la imagen como foco, usan el color de estado en el borde superior y reiteran el estado con texto.
+- Las tarjetas usan retratos en marcos angulares con esquinas técnicas, un código de expediente basado en el ID real, nombre destacado y especie/origen reales. Los acentos de marco son decorativos; el estado se comunica por etiqueta de texto y color.
 - Expedientes, notas y telemetría son paneles distintos: la ficha usa una barra violeta, la bitácora usa una barra cian y el formulario una barra verde.
 - Errores, conectividad y sincronización deben expresarse mediante palabras, acciones o símbolos además del color. Mantener roles y nombres accesibles en botones y alertas.
 
 ## 11. Aplicación por pantalla y estados
 
 - **Inicio:** un escenario de portal enmarcado concentra retícula, anillos elípticos y coordenadas de ambientación; el contador de señales usa el total real de la API. El título y los accesos quedan debajo del portal, con acciones verde y cian diferenciadas. En anchos menores a 360 unidades lógicas se reduce el título para evitar cortes de palabra.
-- **Catálogo:** una banda de archivo separa la cabecera del buscador y comunica total y página reales. La cuadrícula mantiene dos columnas; los retratos alternan proporción vertical/cuadrada y muestran el identificador real sobre la imagen, con estado textual y acento de borde según el estado del personaje. En menos de 360 unidades lógicas, la paginación conserva botones accesibles con flechas compactas.
+- **Catálogo:** una banda de archivo separa la cabecera del buscador y comunica total y página reales. Las tarjetas mantienen una composición uniforme con retrato enmarcado, segmentos de esquina, trama HUD discreta, código derivado del ID real y bloque de nombre/especie/origen. Las proporciones del retrato cambian según el ancho y alternan entre variantes normal/vertical, para mantenerlo protagonista en tarjetas estrechas. Los acentos alternan de forma determinista sin codificar el estado de vida. En menos de 360 unidades lógicas, la paginación conserva botones accesibles con flechas compactas.
 - **Detalle:** retrato protagonista e identidad se separan del expediente. Los datos se presentan en una matriz de bloques; origen, ubicación y fecha ocupan filas completas para facilitar la lectura, mientras género y episodios comparten una fila cuando cabe y se envuelven en anchuras estrechas. Solo se muestran campos de la API. La nota de procedencia usa una superficie violeta.
 - **Bitácora:** panel de formulario con cabecera numerada y registros recuperados claramente separados. Cada nota muestra su ID real, categoría, fecha, contenido y personaje relacionado; la nota elegida para edición se resalta y lleva la etiqueta textual «EN EDICIÓN». Se conservan sello de mutación y telemetría.
 - **Carga:** indicador más texto de actividad contextual.
