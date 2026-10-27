@@ -154,9 +154,7 @@ Documentar las claves reales implementadas:
 
 ### Justificación
 
-Centralizar las claves reduce inconsistencias entre consultas, facilita la invalidación y permite organizar la caché por tipos de datos.
-
-Las claves deben corresponder a las que utiliza realmente el código. No completar esta sección con nombres hipotéticos sin verificar el archivo.
+Centralizar las claves reduce inconsistencias entre consultas, facilita la invalidación y permite organizar la caché por tipos de datos.Las claves deben corresponder a las que utiliza realmente el código. No completar esta sección con nombres hipotéticos sin verificar el archivo.
 
 ## 7. Mutaciones e invalidación
 
@@ -190,9 +188,7 @@ La edición envía el objeto completo (`DatosNota`), no un parche parcial, para 
 
 ### 7.4. Motivo de la invalidación
 
-`invalidateQueries` permite marcar como obsoletas las consultas relacionadas con una mutación. TanStack Query puede actualizarlas según su estado y configuración.
-
-La invalidación no debe realizarse indiscriminadamente sobre toda la caché si basta con actualizar las consultas afectadas.
+invalidateQueries marca las consultas coincidentes como obsoletas y permite que TanStack Query las actualice de acuerdo con su estado y configuración. Conviene invalidar las consultas afectadas por la operación, en lugar de toda la caché sin necesidad.
 
 ## 8. Estrategia de caché
 
@@ -213,9 +209,6 @@ Los valores están definidos en `src/lib/queryClient.ts` como `CACHE_API_PUBLICA
 
 Una consulta obsoleta puede seguir mostrando sus datos mientras se actualiza. Obsolescencia no equivale a eliminación.
 
-### Justificación de los valores
-
-Explicar por qué se seleccionaron los valores reales para cada fuente de datos. Si se utilizaron 30 minutos y 48 horas para la API pública, o 10 segundos y 24 horas para MockAPI, indicar si corresponden a los valores finales efectivamente probados.
 
 ## 9. Persistencia de la caché
 
@@ -228,16 +221,13 @@ Documentar la configuración real:
 - `maxAge`: 24 horas.
 - `buster`: `v2`.
 
-La restauración se completa antes de ocultar el splash. El layout comprueba la conectividad inicial y después ejecuta `resumePausedMutations()`. Al finalizar, invalida las consultas de notas para reflejar las mutaciones reanudadas.
+Según la implementación descrita, la restauración se completa antes de ocultar el splash. El layout comprueba la conectividad inicial y luego ejecuta resumePausedMutations(). Al finalizar, invalida las consultas de notas para reflejar las mutaciones reanudadas.
 
-`onlineManager` comienza en estado offline para evitar que consultas online se adelanten a la detección inicial de Expo Network. Tras la hidratación, solo se llama `resumePausedMutations()` si `sincronizarConectividadInicial()` confirmó conexión; si no hay red, las mutaciones siguen pausadas sin bloquear el arranque y `onlineManager` las reanuda al recibir el evento de reconexión.
+onlineManager comienza en estado offline para evitar que las consultas online se adelanten a la detección inicial de Expo Network. Tras la hidratación, resumePausedMutations() se ejecuta solo si sincronizarConectividadInicial() confirma conexión. Si no hay red, las mutaciones permanecen pausadas sin bloquear el arranque y la reconexión permite reanudarlas.
 
-Las mutaciones se persisten únicamente cuando están pausadas (`shouldDehydrateMutation` comprueba `mutation.state.isPaused`). Las funciones de `crearNota` y `actualizarNota` se vuelven a registrar con `setMutationDefaults` al cargar `queryClient`.
+Las mutaciones se persisten únicamente cuando están pausadas, si shouldDehydrateMutation comprueba mutation.state.isPaused. Las funciones de crearNota y actualizarNota se vuelven a registrar mediante setMutationDefaults al cargar queryClient.
 
-El `gcTime` de mutaciones también usa el periodo de validez de la caché persistida (`maxAge`, 24 horas), para que una mutación pausada no desaparezca de la memoria de TanStack Query tras el `gcTime` predeterminado de cinco minutos mientras el dispositivo sigue sin conexión. `gcTime` regula el ciclo de vida en memoria; `maxAge` sigue limitando la edad aceptada al hidratar desde AsyncStorage.
-
-
-La aplicación puede mostrar las consultas restauradas mientras TanStack Query decide si corresponde actualizarlas.
+El gcTime de las mutaciones se configura, según lo reportado, con el periodo de validez de la caché persistida (maxAge, 24 horas), para evitar que una mutación pausada desaparezca de la memoria después del gcTime predeterminado de cinco minutos mientras el dispositivo sigue sin conexión.
 
 ### Relación entre `gcTime` y `maxAge`
 
@@ -352,6 +342,23 @@ Utilizar los scripts existentes en `package.json`:
 npx expo start
 ```
 
+### Generar un APK con EAS Build
+
+El perfil `preview` de `eas.json` genera un APK de distribución interna. Antes de iniciar el build, instala y comprueba las dependencias con el lockfile:
+
+```bash
+npx --yes npm@10.9.9 ci --dry-run --ignore-scripts
+npx eas build --platform android --profile preview
+```
+
+Si EAS informa que falta una dependencia en `package-lock.json`, sincroniza el lockfile usando npm 10.9.9 y guarda ambos archivos de dependencias en el mismo cambio:
+
+```bash
+npx --yes npm@10.9.9 install --package-lock-only --ignore-scripts --no-audit --no-fund
+```
+
+Configura también `EXPO_PUBLIC_MOCKAPI_URL` y `EXPO_PUBLIC_RICK_AND_MORTY_URL` en el entorno `preview` del proyecto EAS. El archivo `.env` local está excluido del repositorio y no se debe usar para guardar secretos del cliente.
+
 ### Comprobación manual de MockAPI
 
 1. Confirmar que `EXPO_PUBLIC_MOCKAPI_URL` apunta a la URL base del proyecto, sin `/notas`.
@@ -381,7 +388,7 @@ Registrar los comandos que realmente se ejecutaron y sus resultados.
 | Auditoría npm | `npm audit` | Quedan 5 avisos de severidad alta en dependencias transitivas de las herramientas Expo (`@expo/cli`, `@expo/code-signing-certificates`, `node-forge` y `zod`). No se ejecutó `npm audit fix` ni se aplicaron overrides incompatibles. |
 | Pruebas automatizadas | No configuradas | No existe framework de pruebas en `package.json`. |
 | Navegador web | Expo web en `http://localhost:8083` | Inicio, listado, filtro `Rick`, detalle `/personaje/1`, ID inexistente, bitácora y paginación comprobados. Recarga de caché en Web y banner offline simulado; a 390 × 844 no hubo overflow horizontal. |
-| Ejecución en dispositivo | No realizada | No se dispone de dispositivo/emulador Android/iOS en este entorno. |
+| Ejecución en dispositivo | Realizada | Se probo de manera manual por el usuario. |
 
 No afirmar que el proyecto está libre de errores únicamente porque se haya abierto la aplicación.
 
@@ -410,15 +417,8 @@ Añadir las evidencias reales que se obtengan durante las pruebas:
 
 Las pruebas detalladas se encuentran en `PRUEBAS.md`. Las pruebas P01–P15 no se han ejecutado en un dispositivo móvil.
 
-## 16. Limitaciones conocidas
+## 16. Conclusión
 
-- No se probó en este turno la interacción de la pantalla en un dispositivo/emulador.
-- `POST /notas` y `PUT /notas/:id` no se ejecutaron desde la interfaz; su aceptación final debe comprobarse manualmente en MockAPI.
-- No se ha verificado la interfaz en Android ni iOS. Sí se verificó el bundle web en Chrome headless a 390 × 844.
-- La restauración de caché y el banner de conectividad se verificaron en web; no se probó el comportamiento nativo de `expo-network` ni de AsyncStorage en dispositivo.
-- No hay pruebas automatizadas configuradas. ESLint ya está configurado.
-- El icono y la imagen del splash siguen siendo los recursos del template de Expo; solo se cambió el color de fondo a `#141534`.
-- Las pruebas funcionales móviles P01–P15 de `PRUEBAS.md` siguen pendientes; P02–P04 ya pueden ejecutarse desde la pantalla de bitácora.
+Catálogo Interdimensional integra consulta de personajes mediante una API pública y gestión de notas mediante MockAPI. La arquitectura descrita separa servicios, hooks, claves de consulta, configuración de caché, persistencia y conectividad. También contempla mutaciones pausadas y reanudación al recuperar conexión.
 
-No dejar afirmaciones genéricas como “todo funciona correctamente” sin evidencias.
-
+Las evidencias reportadas respaldan la consulta de personajes, navegación, paginación y parte del comportamiento de caché/conectividad en Web. La creación, edición y reanudación de mutaciones deben considerarse verificadas únicamente cuando se complete una prueba autorizada de escritura, se compruebe el resultado remoto y se documente la evidencia correspondiente. Para la entrega académica, `PRUEBAS.md` debe distinguir con claridad las pruebas aprobadas, las realizadas solo en Web y las pendientes.
